@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Week-Ahead Econ Calendar · 12–21 Oct 2026</title>
+<style>
+:root{--bg:#f3f5f7;--card:#fff;--ink:#16202b;--mute:#5d6b7a;--line:#d9e0e7;--acc:#0f5c8a;--hi:#c2410c;--tab:#e4eaf0}
+@media (prefers-color-scheme:dark){:root{--bg:#10171e;--card:#18222c;--ink:#e6edf3;--mute:#93a3b3;--line:#2b3947;--acc:#5cb3e6;--hi:#fb923c;--tab:#223040}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:20px 16px 8px;max-width:1100px;margin:auto}
+h1{font:600 22px/1.2 Georgia,serif;margin:0 0 4px}
+.sub{color:var(--mute);font-size:13px}
+main{max-width:1100px;margin:auto;padding:8px 16px 40px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.mode button,.tabs button{border:1px solid var(--line);background:var(--tab);color:var(--ink);padding:7px 12px;border-radius:6px;cursor:pointer;font:inherit}
+.mode button.on,.tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
+.tabs button{font-size:13px;padding:6px 10px}
+input[type=search]{flex:1;min-width:180px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit}
+label{font-size:13px;color:var(--mute)}
+.sum{background:var(--card);border-left:4px solid var(--acc);padding:12px 14px;margin-bottom:14px;border-radius:0 6px 6px 0}
+.sum h2{font-size:15px;margin:0 0 4px}.sum p{margin:0;color:var(--mute);font-size:14px;max-width:80ch}
+.sum small{display:block;margin-top:6px;color:var(--mute)}
+.wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+th{font-size:12px;color:var(--mute);font-weight:600;background:var(--tab)}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.h td:nth-child(3){font-weight:600;color:var(--hi)}
+.note{display:block;color:var(--mute);font-size:12.5px;margin-top:2px;max-width:60ch}
+.cc{font-weight:600;color:var(--acc)}
+.empty{padding:20px;color:var(--mute)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+<h1>Week-ahead economic calendar, 12–21 Oct 2026</h1>
+<div class="sub">Times are London (BST) as in the pasted TradingEconomics calendar. “Est” = consensus, else TE forecast, else MNI/ITC estimate. Built from four pasted sources: TE calendar, MNI CEEMEA (2 Oct), ITC Asia, MNI Latam.</div>
+</header>
+<main>
+<div class="bar">
+ <span class="mode"><button id="mDay" class="on">By day</button> <button id="mCty">By country</button></span>
+ <input type="search" id="q" placeholder="Filter events (e.g. CPI, Fed, auction)" aria-label="Filter events">
+ <label><input type="checkbox" id="hi"> Key events only</label>
+</div>
+<div class="tabs" id="tabs" role="tablist"></div>
+<div id="sum"></div>
+<div id="out"></div>
+</main>
+<script>
+// Row: [day(Oct), time, country, event, period, previous, estimate, key(1/0), source note]
+const D=[
+[12,"","GLB","IMF–World Bank Annual Meetings (12–18 Oct)","","","",1,"Runs all week; ITC lists many ECB/BoE/Fed/BoC speakers on its panels. G20 FinMin/CB meeting on Thu."],
+[12,"","US","Holiday: Columbus Day","","","",0,"ITC: US, Canada (Thanksgiving) and Japan (Sports Day) are shut, so thin liquidity."],
+[12,"","LatAm","Brazil, Chile, Colombia, Argentina markets closed","","","",0,"MNI Latam: national holiday."],
+[12,"03:30","KR","3-Year KTB auction","","3.875%","",0,"ITC: KRW 2.4tn 3y 3.50% Jun29."],
+[12,"08:00","TR","Retail Sales YoY","Aug","10.4%","9.9%",0],
+[12,"08:00","TR","Retail Sales MoM","Aug","0.2%","-0.3%",0],
+[12,"10:30","GB","BoE Breeden speech (dove)","","","",0,"ITC: innovation / G20 session at Atlantic Council."],
+[12,"11:00","EA","ECB Vujčić speech","","","",0],
+[12,"11:30","IN","CPI YoY","Sep","4.82%","4.9%",1,"MoM prev 0.73%, est 0.3%."],
+[12,"13:00","MX","Industrial Production YoY","Aug","2.7%","1.5%",0,"MoM prev 0.5%, est 0.1% (MNI Latam)."],
+[12,"13:50","GB","BoE Mann speech (hawk)","","","",1,"ITC: panel on inflation at NABE."],
+[12,"14:00","RU","Balance of Trade","Aug","$13.59B","$14.1B",0],
+[12,"17:50","US","Fed Hammack speech (hawk)","","","",1,"ITC: economy and monetary policy at NABE."],
+[13,"00:50","JP","PPI YoY","Sep","7.6%","7.7%",0,"MoM prev -0.2%, forecast 0.6%."],
+[13,"01:30","AU","NAB Business Confidence","Sep","-8","-9",0],
+[13,"01:30","AU","RBA Meeting Minutes","","","",1],
+[13,"04:00","GB","BoE Greene speech (hawk)","","","",0,"ITC: rates and energy."],
+[13,"07:00","DE","CPI YoY (final)","Sep","2.9%","3.3%",1,"Flash estimate expected to be confirmed. HICP also 3.3% est."],
+[13,"08:45","US","Fed Waller speech","","","",1,"ITC: Bloomberg New Economy Forum."],
+[13,"10:00","GB","Gilt 2063 tender","","","",0,"ITC: £0.5bn of 4% 2063."],
+[13,"10:10","IT","BTP auctions 3y / 7y / 15y","","3.43 / 3.98 / 3.95%","",0],
+[13,"10:30","DE","5-Year Bobl auction","","3.28%","",0],
+[13,"10:30","ZA","Mining Production YoY","Aug","-7.5%","-3.0%",0,"Also Gold output -7.4% prev; bond auctions 2033/38/39."],
+[13,"11:00","US","NFIB Business Optimism","Sep","98.7","96 (cons 98)",0],
+[13,"15:00","US","Existing Home Sales","Sep","3.98M","3.97M",0],
+[13,"19:00","US","Monthly Budget Statement","Sep","-$167B","+$210B",0],
+[13,"20:00","AR","CPI MoM","Sep","1.7%","1.9%",1,"MNI Latam: BCRA survey sees 1.9% m/m, easing to 1.6% by Nov. Annual rate slightly below Aug 33.5% (TE lists 33.7% prev / 34.0% fcst, a mismatch)."],
+[13,"21:00","US","Fed Collins speech","","","",0],
+[14,"02:30","CN","CPI YoY","Sep","0.8%","1.1%",1],
+[14,"02:30","CN","PPI YoY","Sep","3.8%","4.4%",1],
+[14,"04:00","CN","Trade Balance","Sep","$119.1B","$114.5B",1,"Exports YoY prev 25%, est 25.3%; imports prev 28.2%, est 23.5%."],
+[14,"01:00","SG","GDP QoQ advance","Q3","1.4%","1.0%",0,"YoY prev 5.9%, forecast 5.3%. MAS statement due."],
+[14,"03:10","EA","ECB Lagarde speeches (03:10, 09:30)","","","",1],
+[14,"06:30","GB","BoE Bailey speech","","","",1,"ITC: fraud panel, IMF meetings."],
+[14,"07:30","IN","WPI Inflation YoY","Sep","9.92%","12%",0,"Fuel WPI prev 22.93%."],
+[14,"08:00","ES","CPI YoY (final)","Sep","4.3%","4.9%",0],
+[14,"10:30","DE","20y / 30y Bund auctions","","3.78 / 3.90%","",0],
+[14,"13:30","US","CPI YoY","Sep","3.4%","3.6%",1,"MoM prev 0.4%, est 0.5–0.6%. CPI index est 336.5."],
+[14,"13:30","US","Core CPI YoY","Sep","2.4%","2.4–2.5%",1,"Core MoM prev 0.3%, est 0.2%."],
+[14,"13:30","CA","Building Permits MoM","Aug","-17.3%","2.7%",0],
+[14,"17:40","US","Fed Bowman speech (dove)","","","",0],
+[14,"19:00","US","Fed Beige Book","","","",1],
+[14,"13:00","BR","Services Volume YoY","Aug","0.9%","1.4%",0,"MoM prev 0.0%, est +0.5%."],
+[15,"01:30","AU","Employment Change","Sep","39.5K","20K",1,"Unemployment rate prev/est 4.6%."],
+[15,"07:00","GB","GDP MoM","Aug","0.4%","-0.1%",1,"YoY prev/fcst 1.6%; 3M avg prev 0.4%."],
+[15,"07:00","GB","Industrial Production MoM","Aug","0.2%","-0.1%",0,"Manufacturing MoM prev 0.9%, est 0.1–0.2%."],
+[15,"07:00","GB","Goods Trade Balance","Aug","£-20.97B","£-21.8B",0],
+[15,"07:45","FR","CPI YoY (final)","Sep","2.4%","3.0%",0,"HICP est 3.4%."],
+[15,"04:40","GB","BoE Pill (hawk) & Woods speeches","","","",0,"ITC also lists Greene (hawk) and Breeden (dove) later."],
+[15,"09:45","GB","BoE Breeden speech","","","",0],
+[15,"10:00","EA","Industrial Production MoM","Aug","-0.1%","0.1–0.3%",0],
+[15,"11:30","IN","Unemployment Rate","Sep","5%","5.2%",0],
+[15,"13:00","BR","Retail Sales MoM","Aug","-0.8%","0.4%",1,"MNI Latam: weak activity backdrop."],
+[15,"13:30","US","PPI YoY","Sep","5.4%","5.9%",1,"MoM prev 0.4%, est 0.5%. Core PPI YoY prev 4.6%, fcst 4.7%."],
+[15,"13:30","US","Initial Jobless Claims","Oct 10","197K","197K",1,"TE forecast 201K."],
+[15,"13:30","US","Philadelphia Fed Index","Oct","37.8","26.5",1,"Prices paid prev 48.6."],
+[15,"13:30","US","NY Empire State Index","Oct","7.6","3.2",0],
+[15,"14:30","US","Retail Sales MoM","Sep","1.2%","0.3%",1,"Ex-autos prev 1.4%, est 0.5%; control group prev 1.4%, fcst 0.2%. YoY prev 6%."],
+[15,"15:00","US","Business Inventories MoM","Aug","0.8%","0.4%",0],
+[15,"16:00","PE","Economic Activity YoY","Aug","3.6%","~3.5%",1,"MNI Latam: near potential, strong domestic demand; BCRP may consider a hike."],
+[15,"21:30","US","Fed Hammack speech","","","",0,"ITC puts it at a Goldman event."],
+[15,"","CN","Total Social Financing","Sep","CNY1660B","CNY3270B",1,"New yuan loans prev CNY60B, est CNY975B; M2 est 7.4%."],
+[15,"","IN","Trade Balance","Sep","$-43.81B","$-29.5B",0],
+[16,"04:30","US","Fed Chair Warsh speech","","","",1,"ITC: fireside chat on the global economy at IMF meetings."],
+[16,"03:00","GB","BoE Bailey speech","","","",0],
+[16,"10:00","EA","CPI YoY (final)","Sep","3.2%","3.8%",1,"Core est 2.5% (prev 2.4%); MoM est 0.6%."],
+[16,"10:00","IT","CPI YoY (final)","Sep","3.3%","4.2%",0,"HICP est 4.1%."],
+[16,"13:00","BR","IBC-Br Economic Activity","Aug","-0.2%","0.5%",1,"MNI Latam: likely weak, keeps door open to another Selic cut next month."],
+[16,"13:15","CA","Housing Starts","Sep","229K","210K",0],
+[16,"13:30","US","Import Prices MoM","Sep","0.7%","0.6–0.8%",0,"Export prices MoM prev 0.6%."],
+[16,"14:15","US","Industrial Production MoM","Sep","0%","0.3%",1,"Capacity utilisation prev 76.3%, est 76.5%."],
+[16,"16:00","CO","Retail Sales YoY","Aug","5.3%","",0,"MNI Latam: IP prev -0.3%, hit by earthquake; BanRep rate hike likely."],
+[16,"","GLB","Rating reviews: EU, Italy, Latvia, Lithuania, Netherlands","","","",0,"ITC: DBRS, Fitch, Moody's, S&P."],
+[19,"03:00","CN","GDP YoY","Q3","4.3%","5.2%",1,"QoQ prev 0.9%, fcst 0.7%."],
+[19,"03:00","CN","Retail Sales YoY","Sep","0.4%","1%",1],
+[19,"03:00","CN","Industrial Production YoY","Sep","5.2%","4.8%",1],
+[19,"03:00","CN","Fixed Asset Investment YTD","Sep","-7.2%","-6.5%",0],
+[19,"13:30","CA","CPI YoY","Sep","3.0%","3.2%",1,"MoM prev -0.1%, fcst 0.4%. Core 2.4% both."],
+[19,"15:30","CA","BoC Business Outlook Survey","","","",0],
+[20,"02:15","CN","Loan Prime Rate 1Y / 5Y","Oct","3.0% / 3.5%","",0],
+[20,"07:00","GB","Unemployment Rate","Aug","4.9%","",1,"Wages incl. bonus prev 3.9%; payrolls prev -26K (fcst -15K); claimant count fcst 20K."],
+[20,"10:00","DE","ZEW Economic Sentiment","Oct","34.7","19",1,"EA ZEW prev 25.8, fcst 15."],
+[20,"13:30","US","Housing Starts","Sep","1.275M","1.3M",0],
+[21,"07:00","GB","CPI YoY","Sep","3.1%","3.4%",1,"Core prev 2.6%, fcst 2.7%; MoM fcst 0.3%."],
+[21,"08:30","ID","Bank Indonesia Rate Decision","Oct","5.75%","5.75%",1],
+[21,"09:00","ZA","CPI YoY","Sep","4.4%","4.6%",1,"Core prev/fcst 4.1%."]
+];
+const DAY={
+12:["Holiday-thinned start","US, Canada, Japan and four LatAm markets are shut. Focus is India CPI (prev 4.82%), Mexico industrial output, and hawkish-leaning BoE Mann and Fed Hammack. IMF Annual Meetings begin."],
+13:["Central-bank talk, light data","German final CPI, NFIB and Argentina CPI (est ~1.9% m/m) lead the data. Many speakers: Waller, Collins, Barkin, Lane, Lagarde, Greene, Dhingra. Euro-area bond supply from Italy and Germany."],
+14:["US CPI day","Consensus sees US CPI at 3.6% y/y (prev 3.4%) with core 2.4–2.5%. China CPI/PPI and trade data arrive overnight, plus the Beige Book, Lagarde, Bailey and Bowman."],
+15:["US data heavy","US PPI, retail sales, Philly Fed and claims, plus UK August GDP (cons -0.1% m/m), Australian jobs and China credit data (TSF est CNY3.27tn). Brazil retail sales and Peru activity in LatAm."],
+16:["Warsh and euro inflation","Fed Chair Warsh speaks early. Euro-area final CPI est 3.8%, US industrial production, Brazil IBC-Br and Colombia activity. Several sovereign rating reviews after the close."],
+19:["China Q3 GDP","Q3 GDP est 5.2% y/y (prev 4.3%), with September retail sales, industrial output and FAI. Canada CPI (est 3.2%) and the BoC Business Outlook Survey follow."],
+20:["Labour and sentiment","UK labour market (unemployment 4.9% prev), German and euro-area ZEW (DE est 19, prev 34.7), China LPR and US housing starts."],
+21:["UK CPI","UK September CPI est 3.4% y/y (prev 3.1%). Also South Africa CPI (est 4.6%) and the Bank Indonesia decision (hold at 5.75% expected)."]};
+const CTY={
+US:["United States","Inflation is the story: CPI est 3.6% y/y, PPI 5.9%, retail sales est +0.3% after +1.2%. Fed speakers and Chair Warsh (Fri) are heavy, with Hammack and Waller on the hawkish-to-neutral side per ITC."],
+GB:["United Kingdom","BoE speakers dominate (Mann and Greene hawks, Breeden and Dhingra doves). Data: August GDP, labour market (20 Oct) and CPI est 3.4% (21 Oct)."],
+EA:["Euro area","Final September CPI est 3.8% y/y, ZEW sentiment and many ECB speakers (Lagarde, Lane, Schnabel, Nagel)."],
+DE:["Germany","Final CPI est 3.3% y/y, wholesale prices (prev 6.8%), PPI and ZEW (est 19). Bobl and Bund auctions."],
+FR:["France","Final CPI est 3.0% y/y (HICP 3.4%); OAT and linker auctions Thursday."],
+IT:["Italy","Final CPI est 4.2% y/y; BTP auctions Tuesday; DBRS rating review."],
+ES:["Spain","Final CPI est 4.9% y/y (prev 4.3%); consumer confidence; Letras/Bonos auctions."],
+CN:["China","Q3 GDP (est 5.2%), September activity data, trade, CPI est 1.1% (prev 0.8%), PPI 4.4% and credit data (TSF est CNY3.27tn)."],
+JP:["Japan","PPI (est 7.7% y/y), machinery orders, industrial production, BoJ Koeda and Uchida. Closed Monday."],
+AU:["Australia","RBA minutes, NAB confidence and September jobs (est +20K, unemployment 4.6%)."],
+IN:["India","CPI est 4.9% y/y, WPI est 12%, trade data and IMF/G20 attention. ITC notes M3 money supply data on Wednesday."],
+CA:["Canada","Closed Monday. Housing starts, BoC Macklem (Wed and Fri) and Rogers, CPI est 3.2% on 19 Oct."],
+MX:["Mexico","August industrial production est +1.5% y/y (prev 2.7%)."],
+BR:["Brazil","MNI Latam sees weak August activity: IBC-Br, retail and services data keep room for another Selic cut next month despite an inflation rebound."],
+AR:["Argentina","September CPI est 1.9% m/m (BCRA survey), annual rate staying above 33%. Year-end inflation seen at 30%."],
+PE:["Peru","August activity est ~3.5% y/y; strong demand keeps BCRP weighing a hike. El Niño is a downside risk."],
+CO:["Colombia","Retail sales, IP and manufacturing for August. Earthquake hit output; rising inflation points to another BanRep hike."],
+TR:["Turkey","Retail sales, current account and budget. MNI (2 Oct) flagged a 16.5% September fall in Borsa Istanbul, with CBRT liquidity measures and limited spillover so far."],
+ZA:["South Africa","Mining output, retail sales and CPI est 4.6%. MNI: SARB hiked 25bp; Kganyago expects inflation to return to 3% by end-2027."],
+RU:["Russia","August trade balance est $14.1B and PPI. MNI lists September CPI (6.3% y/y prev) for 9 Oct."],
+KR:["South Korea","3y and 50y KTB auctions plus price and unemployment data."],
+SG:["Singapore","Advance Q3 GDP (est 1.0% q/q) with a MAS policy statement."],
+ID:["Indonesia","Bank Indonesia expected to hold at 5.75%."],
+GLB:["Global / events","IMF-World Bank Annual Meetings, G20 FinMin meeting (Thu) and a cluster of sovereign rating reviews on Friday."]};
+const MN={10:"Oct"};
+let mode="day",sel=12;
+const $=id=>document.getElementById(id);
+const dl=d=>{const x=new Date(2026,9,d);return x.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})};
+const days=[...new Set(D.map(r=>r[0]))].sort((a,b)=>a-b);
+const ctys=Object.keys(CTY).filter(c=>D.some(r=>r[2]==c||(c=="LatAm"&&0)));
+function tabs(){
+ const list=mode=="day"?days:ctys;
+ if(!list.includes(sel))sel=list[0];
+ $("tabs").innerHTML=list.map(k=>`<button role="tab" class="${k==sel?"on":""}" data-k="${k}">${mode=="day"?dl(k):k}</button>`).join("");
+ $("tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{sel=mode=="day"?+b.dataset.k:b.dataset.k;render()});
+}
+function render(){
+ tabs();
+ const q=$("q").value.toLowerCase(),hi=$("hi").checked;
+ let rows=D.filter(r=>(mode=="day"?r[0]==sel:r[2]==sel)&&(!hi||r[7])&&(!q||r.join(" ").toLowerCase().includes(q)));
+ rows.sort((a,b)=>a[0]-b[0]||(a[1]||"99").localeCompare(b[1]||"99"));
+ const s=mode=="day"?DAY[sel]:CTY[sel];
+ $("sum").innerHTML=s?`<div class="sum"><h2>${mode=="day"?dl(sel)+": "+s[0]:s[0]}</h2><p>${s[1]}</p><small>${rows.length} event${rows.length==1?"":"s"} shown</small></div>`:"";
+ $("out").innerHTML=rows.length?`<div class="wrap"><table><thead><tr><th>${mode=="day"?"Time":"Date / time"}</th><th>${mode=="day"?"Country":"Country"}</th><th>Event</th><th>Period</th><th>Previous</th><th>Est</th></tr></thead><tbody>${
+ rows.map(r=>`<tr class="${r[7]?"h":""}"><td class="n">${mode=="day"?(r[1]||"—"):dl(r[0])+" "+r[1]}</td><td class="cc">${r[2]}</td><td>${r[3]}${r[8]?`<span class="note">${r[8]}</span>`:""}</td><td>${r[4]}</td><td class="n">${r[5]}</td><td class="n">${r[6]}</td></tr>`).join("")
+ }</tbody></table></div>`:`<div class="empty">No events match. Clear the filter or switch tab.</div>`;
+}
+$("mDay").onclick=()=>{mode="day";sel=days[0];$("mDay").classList.add("on");$("mCty").classList.remove("on");render()};
+$("mCty").onclick=()=>{mode="cty";sel="US";$("mCty").classList.add("on");$("mDay").classList.remove("on");render()};
+$("q").oninput=render;$("hi").onchange=render;
+render();
+</script>
+</body>
+</html>
